@@ -1,4 +1,8 @@
 sec
 ===
-minimalistic secret store using age(1) and user ssh keys.
+
+minimalistic secret store in POSIX sh using age(1) and user ssh keys.
+
+requires age:     https://github.com/FiloSottile/age
+inspired by pash: https://github.com/dylanaraps/pash
 
