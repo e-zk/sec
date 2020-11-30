@@ -1,5 +1,6 @@
 #!/bin/sh
 # secret store based on age(1), uses existing user's ssh keys for encryption
+# inspired by pash
 # depends: age
 
 SSH_KEY=${SSH_KEY:-${HOME}/.ssh/id_ed25519}
@@ -15,23 +16,42 @@ where:
 EOF
 }
 
+# 1 - char
+is_yes() {
+	case "$1" in [yY]) return 0; esac; return 1
+}
+
 # 1 - path
 get_crypt() {
-	age --decrypt -i ${SSH_KEY} -o - "${STORE}/${1}"
+	age --decrypt -i ${SSH_KEY} -o - "$1"
 }
 
 # 1 - path
 # 2 - value
 set_crypt() {
 	[ -d "$(dirname "$1")" ] || mkdir -p "$(dirname "$1")"
-	echo "$2" | age -r "$(cat "${SSH_PUB}")" -o "${STORE}/${1}"
+
+	if [ -f "$1" ]; then
+		echo "warning: will overwrite existing secret! continue? [y/N]"
+
+		# get single-char response (stolen from pash)
+		stty -icanon
+		resp=$(dd ibs=1 count=1 2>/dev/null)
+		stty icanon
+
+		is_yes "$resp" || exit 0
+
+		rm -v "$1"
+	fi
+
+	echo "$2" | age -r "$(cat "${SSH_PUB}")" -o "$1"
 }
 
 main() {
 	[ -d "$STORE" ] || mkdir -p "$STORE"
 
 	case "$1" in
-		set) set_crypt "$2" "$3"
+		set) set_crypt "${STORE}/${2}" "$3"
 		     ;;
 		get) [ -f "${STORE}/${2}" ] || { echo "secret does not exist."; exit 1; }
  		     get_crypt "${STORE}/${2}"
