@@ -1,0 +1,4 @@
+sec
+===
+minimalistic secret store using age(1) and user ssh keys.
+
