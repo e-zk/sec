@@ -1,0 +1,45 @@
+#!/bin/sh
+# secret store based on age(1), uses existing user's ssh keys for encryption
+# depends: age
+
+SSH_KEY=${SSH_KEY:-${HOME}/.ssh/id_ed25519}
+SSH_PUB=${SSH_PUB:-${HOME}/.ssh/id_ed25519.pub}
+STORE=${XDG_CONFIG_HOME:-${HOME}/.config}/sec
+
+usage() {
+	cat <<EOF
+usage: sec [get|set] [args]
+where:
+    get <path>            get secret value
+    set <path> <value>    set secret value
+EOF
+}
+
+# 1 - path
+get_crypt() {
+	age --decrypt -i ${SSH_KEY} -o - "${STORE}/${1}"
+}
+
+# 1 - path
+# 2 - value
+set_crypt() {
+	[ -d "$(dirname "$1")" ] || mkdir -p "$(dirname "$1")"
+	echo "$2" | age -r "$(cat "${SSH_PUB}")" -o "${STORE}/${1}"
+}
+
+main() {
+	[ -d "$STORE" ] || mkdir -p "$STORE"
+
+	case "$1" in
+		set) set_crypt "$2" "$3"
+		     ;;
+		get) [ -f "${STORE}/${2}" ] || { echo "secret does not exist."; exit 1; }
+ 		     get_crypt "${STORE}/${2}"
+		     ;;
+		*)   usage
+		     exit 1
+		     ;;
+	esac
+}
+
+main "$@"
