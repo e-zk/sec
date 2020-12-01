@@ -1,6 +1,6 @@
 #!/bin/sh
 # secret store based on age(1), uses existing user's ssh keys for encryption
-# inspired by pash
+# loosely inspired by pash
 # depends: age
 
 SSH_KEY=${SSH_KEY:-${HOME}/.ssh/id_ed25519}
@@ -22,13 +22,13 @@ is_yes() {
 }
 
 # 1 - path
-get_crypt() {
-	age --decrypt -i ${SSH_KEY} -o - "$1"
+get_secret() {
+	age --decrypt -i "${SSH_KEY}" -o - "$1"
 }
 
 # 1 - path
 # 2 - value
-set_crypt() {
+set_secret() {
 	[ -d "$(dirname "$1")" ] || mkdir -p "$(dirname "$1")"
 
 	if [ -f "$1" ]; then
@@ -41,20 +41,28 @@ set_crypt() {
 
 		is_yes "$resp" || exit 0
 
-		rm -v "$1"
+		rm "$1"
 	fi
 
 	echo "$2" | age -r "$(cat "${SSH_PUB}")" -o "$1"
+}
+
+# 1 - path
+del_secret() {
+	rm -i "$1"
 }
 
 main() {
 	[ -d "$STORE" ] || mkdir -p "$STORE"
 
 	case "$1" in
-		set) set_crypt "${STORE}/${2}" "$3"
+		set) set_secret "${STORE}/${2}" "$3"
 		     ;;
 		get) [ -f "${STORE}/${2}" ] || { echo "secret does not exist."; exit 1; }
- 		     get_crypt "${STORE}/${2}"
+ 		     get_secret "${STORE}/${2}"
+		     ;;
+		del) [ -f "${STORE}/${2}" ] || { echo "secret does not exist."; exit 1; }
+		     del_secret "${STORE}/${2}"
 		     ;;
 		*)   usage
 		     exit 1
