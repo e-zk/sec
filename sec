@@ -6,11 +6,13 @@
 SSH_KEY=${SSH_KEY:-${HOME}/.ssh/id_ed25519}
 SSH_PUB=${SSH_PUB:-${HOME}/.ssh/id_ed25519.pub}
 STORE=${XDG_CONFIG_HOME:-${HOME}/.config}/sec
+PASSPHRASE=
 
 usage() {
 	cat <<EOF
-usage: sec [get|set] [args]
+usage: sec [-p] [get|set] [args]
 where:
+    -p                    encrypt with passphrase
     get <path>            get secret value
     set <path> <value>    set secret value
 EOF
@@ -23,7 +25,11 @@ is_yes() {
 
 # 1 - path
 get_secret() {
-	age --decrypt -i "${SSH_KEY}" -o - "$1"
+	if [ "$PASSPHRASE" -eq 1 ]; then
+		age --decrypt -o - "$1"
+	else
+		age --decrypt -i "${SSH_KEY}" -o - "$1"
+	fi
 }
 
 # 1 - path
@@ -43,8 +49,12 @@ set_secret() {
 
 		rm "$1"
 	fi
-
-	echo "$2" | age -r "$(cat "${SSH_PUB}")" -o "$1"
+	
+	if [ "$PASSPHRASE" -eq 1 ]; then
+		echo "$2" | age -p -o "$1"
+	else
+		echo "$2" | age -r "$(cat "${SSH_PUB}")" -o "$1"
+	fi
 }
 
 # 1 - path
@@ -53,8 +63,6 @@ del_secret() {
 }
 
 main() {
-	[ -d "$STORE" ] || mkdir -p "$STORE"
-
 	case "$1" in
 		set) set_secret "${STORE}/${2}" "$3"
 		     ;;
@@ -64,10 +72,16 @@ main() {
 		del) [ -f "${STORE}/${2}" ] || { echo "secret does not exist."; exit 1; }
 		     del_secret "${STORE}/${2}"
 		     ;;
+		-p)
+		     PASSPHRASE=1
+		     shift
+		     main "$@"
+		     ;;
 		*)   usage
 		     exit 1
 		     ;;
 	esac
 }
 
+[ -d "$STORE" ] || mkdir -p "$STORE"
 main "$@"
