@@ -6,3 +6,14 @@ minimalistic secret store in POSIX sh using age(1) and user ssh keys.
 requires age:     https://github.com/FiloSottile/age
 inspired by pash: https://github.com/dylanaraps/pash
 
+usage
+-----
+
+sec [-p] get|set
+
+where:
+    -p                encrypt secret with passphrase instead of ssh key
+subcommands:
+    get PATH          get secret value
+    set PATH VALUE    set secret value
+
