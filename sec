@@ -10,11 +10,12 @@ PASSPHRASE=
 
 usage() {
 	cat <<EOF
-usage: sec [-p] [get|set] [args]
+usage: sec [-p] get|set
 where:
-    -p                    encrypt with passphrase
-    get <path>            get secret value
-    set <path> <value>    set secret value
+    -p                encrypt secret with passphrase instead of ssh key
+subcommands:
+    get PATH          get secret value
+    set PATH VALUE    set secret value
 EOF
 }
 
@@ -77,11 +78,14 @@ main() {
 		     shift
 		     main "$@"
 		     ;;
+		-h)
+		     usage
+		     exit 0
+		     ;;
 		*)   usage
 		     exit 1
 		     ;;
 	esac
 }
-
 [ -d "$STORE" ] || mkdir -p "$STORE"
 main "$@"
